@@ -15,10 +15,15 @@ export const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/spreadsheets');
 provider.addScope('https://www.googleapis.com/auth/drive.file');
+provider.setCustomParameters({ prompt: 'select_account' });
 
 // In-memory token cache (never stored in localStorage/sessionStorage)
 let cachedAccessToken: string | null = null;
 let isSigningIn = false;
+
+export const hasActiveToken = (): boolean => {
+  return !!cachedAccessToken;
+};
 
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
@@ -59,6 +64,15 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
 
 export const getAccessToken = async (): Promise<string | null> => {
   return cachedAccessToken;
+};
+
+export const ensureAccessToken = async (): Promise<string> => {
+  if (cachedAccessToken) return cachedAccessToken;
+  const result = await googleSignIn();
+  if (!result?.accessToken) {
+    throw new Error('Google authorization is required. Please sign in with your Google account.');
+  }
+  return result.accessToken;
 };
 
 export const setAccessToken = (token: string | null) => {

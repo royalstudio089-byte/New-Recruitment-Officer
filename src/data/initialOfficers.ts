@@ -14,7 +14,10 @@ export const CITY_OPTIONS = [
   'Ilford',
   'Barrats',
   'Peterborough',
-  'Bristol'
+  'Bristol',
+  'Gateshead',
+  'Barnkingside London',
+  'Tooting, London'
 ] as const;
 
 export type CityOption = typeof CITY_OPTIONS[number];
@@ -23,112 +26,90 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
   {
     id: 'off-1',
     srNo: 1,
-    name: 'Muhammad Tariq Khan',
-    city: 'London',
-    phoneNumber: '0300-4521890',
+    name: 'Nitin',
+    city: 'Glasgow',
+    phoneNumber: '07436232695',
     status: 'Full timer',
     car: 'Yes',
     stage: 'Active',
-    notes: 'Experienced senior patrol guard with valid license.'
+    notes: 'Glasgow based, verified credentials with vehicle.'
   },
   {
     id: 'off-2',
     srNo: 2,
-    name: 'Usman Ali Raza',
+    name: 'Muhammad Zain Nasir',
     city: 'Birmingham',
-    phoneNumber: '0321-8843219',
-    status: 'Student',
-    car: 'No',
-    stage: 'Interview Scheduled',
-    notes: 'Available for evening & weekend night shifts.'
+    phoneNumber: '07770577295',
+    status: 'Full timer',
+    car: 'Yes',
+    stage: 'Active',
+    notes: 'Birmingham deployment ready, own car.'
   },
   {
     id: 'off-3',
     srNo: 3,
-    name: 'Zahid Mahmood',
-    city: 'Manchester',
-    phoneNumber: '0333-5129087',
-    status: 'E-Visa',
+    name: 'Nabeel Ahmed',
+    city: 'Gateshead',
+    phoneNumber: '447466151419',
+    status: 'Full timer',
     car: 'Yes',
-    stage: 'Selected',
-    notes: 'E-Visa certified, ready for rapid corporate site deployment.'
+    stage: 'Active',
+    notes: 'Gateshead / North East patrol unit, vehicle available.'
   },
   {
     id: 'off-4',
     srNo: 4,
-    name: 'Bilal Ahmad Farooqi',
-    city: 'Glasgow',
-    phoneNumber: '0345-6712345',
+    name: 'Saqib Ali Raza',
+    city: 'London',
+    phoneNumber: '447469514940',
     status: 'Full timer',
-    car: 'Yes',
+    car: 'No',
     stage: 'Active',
-    notes: 'Clean background check verified, own vehicle.'
+    notes: 'Central London static site officer, transit accessible.'
   },
   {
     id: 'off-5',
     srNo: 5,
-    name: 'Hamza Shabbir',
-    city: 'Bristol',
-    phoneNumber: '0302-7654321',
-    status: 'Student',
-    car: 'No',
-    stage: 'Interviewed',
-    notes: 'University student, flexible schedule after 4 PM.'
+    name: 'Arslan Ilyas',
+    city: 'London',
+    phoneNumber: '07916177815',
+    status: 'Full timer',
+    car: 'Yes',
+    stage: 'Active',
+    notes: 'London mobile response patrol guard.'
   },
   {
     id: 'off-6',
     srNo: 6,
-    name: 'Asim Javed Butt',
-    city: 'Watford',
-    phoneNumber: '0312-9988776',
-    status: 'E-Visa',
-    car: 'Yes',
-    stage: 'Selected',
-    notes: 'International verification cleared, SIA credentials verified.'
+    name: 'Adnan Babar',
+    city: 'Barnkingside London',
+    phoneNumber: '07413600096',
+    status: 'Full timer',
+    car: 'No',
+    stage: 'Active',
+    notes: 'East London / Barkingside security coverage.'
   },
   {
     id: 'off-7',
     srNo: 7,
-    name: 'Kashif Mehmood Sheikh',
-    city: 'Brighton',
-    phoneNumber: '0308-3344556',
+    name: 'Muhammad Omar',
+    city: 'Tooting, London',
+    phoneNumber: '07436483942',
     status: 'Full timer',
     car: 'No',
     stage: 'Active',
-    notes: 'Ex-forces background, expert in access control monitoring.'
+    notes: 'South London / Tooting access control specialist.'
   },
   {
     id: 'off-8',
     srNo: 8,
-    name: 'Shahzaib Naveed',
-    city: 'Cardiff',
-    phoneNumber: '0301-4433221',
-    status: 'Student',
-    car: 'Yes',
-    stage: 'New Applicant',
-    notes: 'Applied through online portal, documents pending review.'
-  },
-  {
-    id: 'off-9',
-    srNo: 9,
-    name: 'Rashid Minhas Gondal',
-    city: 'Ilford',
-    phoneNumber: '0322-1122334',
-    status: 'E-Visa',
-    car: 'No',
-    stage: 'On Hold',
-    notes: 'Visa extension document under validation.'
-  },
-  {
-    id: 'off-10',
-    srNo: 10,
-    name: 'Waqas Ashraf Malik',
-    city: 'Swindon',
-    phoneNumber: '0346-8877665',
+    name: 'Nadeem Aslam',
+    city: 'Birmingham',
+    phoneNumber: '447404232654',
     status: 'Full timer',
     car: 'Yes',
     stage: 'Active',
-    notes: 'Equipped with vehicle, ready for mobile patrol units.'
+    notes: 'Birmingham mobile supervision and patrol.'
   }
 ];
 

@@ -225,7 +225,7 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
   };
 
   // Data Validation for City, Status & Car columns
-  const cityValidationList = '"London,Brighton,Birmingham,Glasgow,Manchester,Sunderland,Cardiff,Swindon,Scotland,Watford,Ilford,Barrats,Peterborough,Bristol"';
+  const cityValidationList = '"London,Brighton,Birmingham,Glasgow,Manchester,Sunderland,Cardiff,Swindon,Scotland,Watford,Ilford,Barrats,Peterborough,Bristol,Gateshead,Barnkingside London,Tooting, London"';
 
   for (let r = startRowIndex; r <= Math.max(lastDataRow, 50); r++) {
     sheet.getCell(`C${r}`).dataValidation = {

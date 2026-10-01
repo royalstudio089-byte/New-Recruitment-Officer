@@ -33,7 +33,7 @@ import { SecurityOfficer, CarOption } from './types';
 import { INITIAL_OFFICERS, STATUS_OPTIONS, CAR_OPTIONS, CITY_OPTIONS } from './data/initialOfficers';
 import { exportSecurityOfficersWorkbook } from './services/excelExport';
 import { createGoogleSheetRoster, syncToGoogleSpreadsheet, GoogleSpreadsheetResult } from './services/googleSheets';
-import { initAuth, googleSignIn, getAccessToken, logout } from './services/auth';
+import { initAuth, googleSignIn, getAccessToken, ensureAccessToken, hasActiveToken, logout } from './services/auth';
 import { AddOfficerModal } from './components/AddOfficerModal';
 import { RecruitmentSummaryView } from './components/RecruitmentSummaryView';
 import { PrintView } from './components/PrintView';
@@ -43,19 +43,24 @@ export default function App() {
   // Officers state (persisted to localStorage)
   const [officers, setOfficers] = useState<SecurityOfficer[]>(() => {
     try {
-      const saved = localStorage.getItem('security_officers_data');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((item: any, idx: number) => ({
-            ...item,
-            city: (CITY_OPTIONS as readonly string[]).includes(item.city)
-              ? item.city
-              : CITY_OPTIONS[idx % CITY_OPTIONS.length],
-            srNo: idx + 1
-          }));
+      const DATA_VERSION = 'v2_updated_roster_8';
+      const savedVersion = localStorage.getItem('security_officers_data_version');
+      if (savedVersion === DATA_VERSION) {
+        const saved = localStorage.getItem('security_officers_data');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((item: any, idx: number) => ({
+              ...item,
+              srNo: idx + 1
+            }));
+          }
         }
       }
+      // Replaced with updated dataset
+      localStorage.setItem('security_officers_data_version', DATA_VERSION);
+      localStorage.setItem('security_officers_data', JSON.stringify(INITIAL_OFFICERS));
+      return INITIAL_OFFICERS;
     } catch (e) {
       console.error('Error loading saved officers:', e);
     }
@@ -79,6 +84,7 @@ export default function App() {
 
   // Google Auth & Workspace state
   const [user, setUser] = useState<User | null>(null);
+  const [hasToken, setHasToken] = useState<boolean>(() => hasActiveToken());
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSavingToSheets, setIsSavingToSheets] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
@@ -91,11 +97,13 @@ export default function App() {
   // Initialize Firebase Auth listener
   useEffect(() => {
     const unsubscribe = initAuth(
-      (currentUser) => {
+      (currentUser, token) => {
         setUser(currentUser);
+        setHasToken(!!token);
       },
       () => {
         setUser(null);
+        setHasToken(false);
       }
     );
     return () => {
@@ -127,7 +135,8 @@ export default function App() {
       const res = await googleSignIn();
       if (res) {
         setUser(res.user);
-        showToast(`Signed in successfully as ${res.user.displayName || res.user.email}`);
+        setHasToken(true);
+        showToast(`Connected to Google as ${res.user.displayName || res.user.email}`);
       }
     } catch (error: any) {
       console.error('Sign-in error:', error);
@@ -142,6 +151,7 @@ export default function App() {
     try {
       await logout();
       setUser(null);
+      setHasToken(false);
       setGoogleSheetResult(null);
       showToast('Signed out of Google account.', 'info');
     } catch (error: any) {
@@ -151,8 +161,22 @@ export default function App() {
 
   // Trigger Google Sheets confirmation
   const handleInitiateSaveToSheets = async () => {
-    if (!user) {
-      await handleGoogleSignIn();
+    if (!user || !hasToken) {
+      // Need fresh authorization
+      try {
+        setIsSigningIn(true);
+        const res = await googleSignIn();
+        if (res) {
+          setUser(res.user);
+          setHasToken(true);
+          showToast(`Connected to Google as ${res.user.displayName || res.user.email}`);
+          setShowSheetsConfirmModal(true);
+        }
+      } catch (err: any) {
+        showToast(err.message || 'Authentication cancelled.', 'error');
+      } finally {
+        setIsSigningIn(false);
+      }
       return;
     }
     // Show confirmation modal as required by Workspace integration guidelines
@@ -163,10 +187,8 @@ export default function App() {
   const handleExecuteSaveToSheets = async () => {
     try {
       setIsSavingToSheets(true);
-      const token = await getAccessToken();
-      if (!token) {
-        throw new Error('Google access token is unavailable. Please sign in again.');
-      }
+      const token = await ensureAccessToken();
+      setHasToken(true);
 
       if (googleSheetResult?.spreadsheetId) {
         // Sync to existing spreadsheet
@@ -381,19 +403,20 @@ export default function App() {
               <button
                 onClick={handleGoogleSignIn}
                 disabled={isSigningIn}
-                className="gsi-material-button inline-flex items-center gap-2 px-3 py-1.5 bg-white text-slate-800 hover:bg-slate-100 text-xs font-medium rounded-lg transition-colors shadow-xs border border-slate-300 cursor-pointer"
-                title="Sign in with Google to enable Google Sheets sync"
+                className="gsi-material-button inline-flex items-center gap-2 px-3.5 py-1.5 bg-white text-slate-800 hover:bg-slate-100 text-xs font-semibold rounded-lg transition-colors shadow-xs border border-slate-300 cursor-pointer"
+                title="Sign in with Google to enable Google Sheets & Drive sync"
               >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 48 48">
+                <svg className="w-4 h-4" viewBox="0 0 48 48">
                   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
                   <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
                   <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
                   <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
                 </svg>
-                <span>{isSigningIn ? 'Connecting...' : 'Sign in for Google Sheets'}</span>
+                <span>{isSigningIn ? 'Connecting...' : 'Sign in to Google'}</span>
               </button>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center flex-wrap gap-2">
+                {/* Save / Sync to Google Sheets button */}
                 <button
                   onClick={handleInitiateSaveToSheets}
                   disabled={isSavingToSheets}
@@ -410,21 +433,32 @@ export default function App() {
                   </span>
                 </button>
 
+                {/* Sign in again / Re-authenticate button */}
+                <button
+                  onClick={handleGoogleSignIn}
+                  disabled={isSigningIn}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-medium rounded-lg transition-colors border border-slate-700 cursor-pointer"
+                  title={`Signed in as ${user.email}. Click to sign in again or switch Google account.`}
+                >
+                  <RotateCcw className={`w-3 h-3 text-emerald-400 ${isSigningIn ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Sign in again</span>
+                </button>
+
                 {googleSheetResult && (
                   <a
                     href={googleSheetResult.spreadsheetUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-medium rounded-lg border border-slate-700 transition-colors"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 text-xs font-medium rounded-lg border border-emerald-700 transition-colors"
                   >
-                    <span>Open Sheets</span>
+                    <span>Open in Sheets</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
 
                 <button
                   onClick={handleGoogleSignOut}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
                   title={`Sign out (${user.email})`}
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -502,6 +536,78 @@ export default function App() {
                   Format: Microsoft Excel & Google Sheets Compliant
                 </span>
                 <span>Document Status: Active Roster | Print: A4 Landscape</span>
+              </div>
+            </div>
+
+            {/* GOOGLE SHEETS & DRIVE INTEGRATION STATUS BANNER */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${user ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                      Google Sheets & Drive Integration
+                    </span>
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      user ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${user ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                      {user ? `Connected (${user.email})` : 'Not Connected'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {user 
+                      ? 'Recruitment roster is ready to sync directly to your Google Sheets spreadsheet.'
+                      : 'Sign in with your Google account to create and synchronize spreadsheets in your Google Drive.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center flex-wrap gap-2 self-start sm:self-auto">
+                {!user ? (
+                  <button
+                    onClick={handleGoogleSignIn}
+                    disabled={isSigningIn}
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer"
+                  >
+                    <span>{isSigningIn ? 'Connecting...' : 'Sign in to Google'}</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleInitiateSaveToSheets}
+                      disabled={isSavingToSheets}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                      <span>{isSavingToSheets ? 'Saving...' : googleSheetResult ? 'Sync to Google Sheets' : 'Save to Google Sheets'}</span>
+                    </button>
+
+                    <button
+                      onClick={handleGoogleSignIn}
+                      disabled={isSigningIn}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors border border-slate-200 cursor-pointer"
+                      title="Re-open Google account selection popup"
+                    >
+                      <RotateCcw className={`w-3 h-3 text-slate-500 ${isSigningIn ? 'animate-spin' : ''}`} />
+                      <span>Sign in again</span>
+                    </button>
+
+                    {googleSheetResult && (
+                      <a
+                        href={googleSheetResult.spreadsheetUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium rounded-lg border border-blue-200 transition-colors"
+                      >
+                        <span>Open in Sheets</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
