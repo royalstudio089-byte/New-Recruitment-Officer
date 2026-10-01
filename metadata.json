@@ -1,0 +1,6 @@
+{
+  "name": "Security Officers – New Recruitment Workbook",
+  "description": "Professional Excel & Google Sheets recruitment management workbook for Security Officers, featuring automated numbering, status tracking, vehicle status, summary metrics, and direct Google Sheets sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
