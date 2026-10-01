@@ -17,7 +17,8 @@ export const CITY_OPTIONS = [
   'Bristol',
   'Gateshead',
   'Barnkingside London',
-  'Tooting, London'
+  'Tooting, London',
+  'Southall'
 ] as const;
 
 export type CityOption = typeof CITY_OPTIONS[number];
@@ -31,6 +32,7 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     phoneNumber: '07436232695',
     status: 'Full timer',
     car: 'Yes',
+    dogHandler: 'No',
     stage: 'Active',
     notes: 'Glasgow based, verified credentials with vehicle.'
   },
@@ -42,8 +44,9 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     phoneNumber: '07770577295',
     status: 'Full timer',
     car: 'Yes',
+    dogHandler: 'Yes',
     stage: 'Active',
-    notes: 'Birmingham deployment ready, own car.'
+    notes: 'Birmingham deployment ready, own car, certified K9 dog handler.'
   },
   {
     id: 'off-3',
@@ -53,6 +56,7 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     phoneNumber: '447466151419',
     status: 'Full timer',
     car: 'Yes',
+    dogHandler: 'No',
     stage: 'Active',
     notes: 'Gateshead / North East patrol unit, vehicle available.'
   },
@@ -64,6 +68,7 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     phoneNumber: '447469514940',
     status: 'Full timer',
     car: 'No',
+    dogHandler: 'No',
     stage: 'Active',
     notes: 'Central London static site officer, transit accessible.'
   },
@@ -75,8 +80,9 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     phoneNumber: '07916177815',
     status: 'Full timer',
     car: 'Yes',
+    dogHandler: 'Yes',
     stage: 'Active',
-    notes: 'London mobile response patrol guard.'
+    notes: 'London mobile response patrol guard with GP dog handling experience.'
   },
   {
     id: 'off-6',
@@ -86,6 +92,7 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     phoneNumber: '07413600096',
     status: 'Full timer',
     car: 'No',
+    dogHandler: 'No',
     stage: 'Active',
     notes: 'East London / Barkingside security coverage.'
   },
@@ -97,6 +104,7 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     phoneNumber: '07436483942',
     status: 'Full timer',
     car: 'No',
+    dogHandler: 'No',
     stage: 'Active',
     notes: 'South London / Tooting access control specialist.'
   },
@@ -108,6 +116,7 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     phoneNumber: '447404232654',
     status: 'Full timer',
     car: 'Yes',
+    dogHandler: 'No',
     stage: 'Active',
     notes: 'Birmingham mobile supervision and patrol.'
   }
@@ -128,3 +137,4 @@ export const STATUS_OPTIONS = [
 ] as const;
 
 export const CAR_OPTIONS = ['Yes', 'No'] as const;
+export const DOG_HANDLER_OPTIONS = ['Yes', 'No'] as const;

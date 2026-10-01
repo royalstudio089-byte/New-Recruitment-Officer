@@ -67,9 +67,9 @@ export async function createGoogleSheetRoster(
 
   // 2. Prepare Values for Officer Database
   const officerValues: (string | number)[][] = [
-    ['NEW RECRUITMENT – SECURITY OFFICERS', '', '', '', '', ''],
-    [`Recruitment Roster | Generated: ${new Date().toLocaleDateString()}`, '', '', '', '', ''],
-    ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car']
+    ['NEW RECRUITMENT – SECURITY OFFICERS', '', '', '', '', '', ''],
+    [`Recruitment Roster | Generated: ${new Date().toLocaleDateString()}`, '', '', '', '', '', ''],
+    ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler']
   ];
 
   officers.forEach((o, index) => {
@@ -79,13 +79,14 @@ export async function createGoogleSheetRoster(
       o.city,
       `'${o.phoneNumber}`, // Apostrophe prefix ensures Sheets stores as text preserving leading zeros
       o.status,
-      o.car
+      o.car,
+      o.dogHandler || 'No'
     ]);
   });
 
   // 3. Write Officer Database Values
   await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'Officer Database'!A1:F${officerValues.length}?valueInputOption=USER_ENTERED`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'Officer Database'!A1:G${officerValues.length}?valueInputOption=USER_ENTERED`,
     {
       method: 'PUT',
       headers: {
@@ -108,7 +109,9 @@ export async function createGoogleSheetRoster(
     ['Full Timer', `="Full timer count"`, `=COUNTIF('Officer Database'!E4:E${lastRow}, "Full timer")`, `=IFERROR(COUNTIF('Officer Database'!E4:E${lastRow}, "Full timer")/COUNTA('Officer Database'!B4:B${lastRow}), 0)`],
     ['E-Visa', `="E-Visa count"`, `=COUNTIF('Officer Database'!E4:E${lastRow}, "E-Visa")`, `=IFERROR(COUNTIF('Officer Database'!E4:E${lastRow}, "E-Visa")/COUNTA('Officer Database'!B4:B${lastRow}), 0)`],
     ['Officers With Car', `="Car: Yes"`, `=COUNTIF('Officer Database'!F4:F${lastRow}, "Yes")`, `=IFERROR(COUNTIF('Officer Database'!F4:F${lastRow}, "Yes")/COUNTA('Officer Database'!B4:B${lastRow}), 0)`],
-    ['Officers Without Car', `="Car: No"`, `=COUNTIF('Officer Database'!F4:F${lastRow}, "No")`, `=IFERROR(COUNTIF('Officer Database'!F4:F${lastRow}, "No")/COUNTA('Officer Database'!B4:B${lastRow}), 0)`]
+    ['Officers Without Car', `="Car: No"`, `=COUNTIF('Officer Database'!F4:F${lastRow}, "No")`, `=IFERROR(COUNTIF('Officer Database'!F4:F${lastRow}, "No")/COUNTA('Officer Database'!B4:B${lastRow}), 0)`],
+    ['Dog Handlers (K9 Units)', `="Dog Handler: Yes"`, `=COUNTIF('Officer Database'!G4:G${lastRow}, "Yes")`, `=IFERROR(COUNTIF('Officer Database'!G4:G${lastRow}, "Yes")/COUNTA('Officer Database'!B4:B${lastRow}), 0)`],
+    ['Standard Patrol (Non-Dog Handlers)', `="Dog Handler: No"`, `=COUNTIF('Officer Database'!G4:G${lastRow}, "No")`, `=IFERROR(COUNTIF('Officer Database'!G4:G${lastRow}, "No")/COUNTA('Officer Database'!B4:B${lastRow}), 0)`]
   ];
 
   await fetch(
@@ -425,9 +428,9 @@ export async function syncToGoogleSpreadsheet(
   officers: SecurityOfficer[]
 ): Promise<void> {
   const officerValues: (string | number)[][] = [
-    ['NEW RECRUITMENT – SECURITY OFFICERS', '', '', '', '', ''],
-    [`Recruitment Roster | Synced: ${new Date().toLocaleDateString()}`, '', '', '', '', ''],
-    ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car']
+    ['NEW RECRUITMENT – SECURITY OFFICERS', '', '', '', '', '', ''],
+    [`Recruitment Roster | Synced: ${new Date().toLocaleDateString()}`, '', '', '', '', '', ''],
+    ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler']
   ];
 
   officers.forEach((o, index) => {
@@ -437,12 +440,13 @@ export async function syncToGoogleSpreadsheet(
       o.city,
       `'${o.phoneNumber}`,
       o.status,
-      o.car
+      o.car,
+      o.dogHandler || 'No'
     ]);
   });
 
   const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'Officer Database'!A1:F${officerValues.length}?valueInputOption=USER_ENTERED`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'Officer Database'!A1:G${officerValues.length}?valueInputOption=USER_ENTERED`,
     {
       method: 'PUT',
       headers: {

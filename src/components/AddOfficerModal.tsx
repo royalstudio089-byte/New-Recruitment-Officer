@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Phone, MapPin, User, Car, Shield } from 'lucide-react';
-import { SecurityOfficer, CarOption } from '../types';
-import { STATUS_OPTIONS, CITY_OPTIONS } from '../data/initialOfficers';
+import { X, UserPlus, Phone, MapPin, User, Car, Shield, Award } from 'lucide-react';
+import { SecurityOfficer, CarOption, DogHandlerOption } from '../types';
+import { STATUS_OPTIONS, CITY_OPTIONS, DOG_HANDLER_OPTIONS } from '../data/initialOfficers';
 
 interface AddOfficerModalProps {
   isOpen: boolean;
@@ -23,6 +23,7 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
   const [phoneNumber, setPhoneNumber] = useState('');
   const [status, setStatus] = useState<string>('Full timer');
   const [car, setCar] = useState<CarOption>('No');
+  const [dogHandler, setDogHandler] = useState<DogHandlerOption>('No');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
 
@@ -33,6 +34,7 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
       setPhoneNumber(editOfficer.phoneNumber);
       setStatus(editOfficer.status);
       setCar(editOfficer.car);
+      setDogHandler(editOfficer.dogHandler || 'No');
       setNotes(editOfficer.notes || '');
     } else {
       setName('');
@@ -40,6 +42,7 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
       setPhoneNumber('');
       setStatus('Full timer');
       setCar('No');
+      setDogHandler('No');
       setNotes('');
     }
     setError('');
@@ -69,6 +72,7 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
         phoneNumber: phoneNumber.trim(),
         status,
         car,
+        dogHandler,
         notes: notes.trim()
       },
       editOfficer?.id
@@ -169,24 +173,24 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
             </div>
           </div>
 
-          {/* Status & Car Dropdowns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Status, Car & Dog Handler Dropdowns */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                 <Shield className="w-3.5 h-3.5 text-slate-400" />
-                Recruitment Status *
+                Status *
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
               >
                 <optgroup label="Work / Visa Status (Primary)">
-                  <option value="Student">Student (Noticeable Highlight)</option>
-                  <option value="Full timer">Full timer (Neutral)</option>
-                  <option value="E-Visa">E-Visa (Positive Highlight)</option>
+                  <option value="Student">Student</option>
+                  <option value="Full timer">Full timer</option>
+                  <option value="E-Visa">E-Visa</option>
                 </optgroup>
-                <optgroup label="Recruitment Pipeline Stages">
+                <optgroup label="Pipeline Stages">
                   <option value="New Applicant">New Applicant</option>
                   <option value="Interview Scheduled">Interview Scheduled</option>
                   <option value="Interviewed">Interviewed</option>
@@ -202,15 +206,30 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                 <Car className="w-3.5 h-3.5 text-slate-400" />
-                Car (Own Vehicle) *
+                Car *
               </label>
               <select
                 value={car}
                 onChange={(e) => setCar(e.target.value as CarOption)}
-                className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
               >
-                <option value="Yes">Yes (Has own vehicle)</option>
-                <option value="No">No (Relies on public/metro)</option>
+                <option value="Yes">Yes (Has car)</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Award className="w-3.5 h-3.5 text-slate-400" />
+                Dog Handler *
+              </label>
+              <select
+                value={dogHandler}
+                onChange={(e) => setDogHandler(e.target.value as DogHandlerOption)}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
+              >
+                <option value="Yes">Yes (K9 Certified)</option>
+                <option value="No">No</option>
               </select>
             </div>
           </div>

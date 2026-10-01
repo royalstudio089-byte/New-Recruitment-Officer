@@ -26,24 +26,38 @@ import {
   ChevronDown,
   ArrowUpDown,
   FileCheck,
-  MapPin
+  MapPin,
+  Cloud,
+  Database,
+  Award,
+  FileText,
+  MessageSquare
 } from 'lucide-react';
 import { User } from 'firebase/auth';
-import { SecurityOfficer, CarOption } from './types';
-import { INITIAL_OFFICERS, STATUS_OPTIONS, CAR_OPTIONS, CITY_OPTIONS } from './data/initialOfficers';
+import { SecurityOfficer, CarOption, DogHandlerOption } from './types';
+import { INITIAL_OFFICERS, STATUS_OPTIONS, CAR_OPTIONS, CITY_OPTIONS, DOG_HANDLER_OPTIONS } from './data/initialOfficers';
 import { exportSecurityOfficersWorkbook } from './services/excelExport';
+import { exportSecurityOfficersPdf } from './services/pdfExport';
 import { createGoogleSheetRoster, syncToGoogleSpreadsheet, GoogleSpreadsheetResult } from './services/googleSheets';
 import { initAuth, googleSignIn, getAccessToken, ensureAccessToken, hasActiveToken, logout } from './services/auth';
+import { 
+  testFirestoreConnection, 
+  subscribeToOfficers, 
+  saveOfficerToFirestore, 
+  deleteOfficerFromFirestore, 
+  batchSeedOfficersToFirestore 
+} from './services/firestore';
 import { AddOfficerModal } from './components/AddOfficerModal';
 import { RecruitmentSummaryView } from './components/RecruitmentSummaryView';
 import { PrintView } from './components/PrintView';
 import { ConfirmationModal } from './components/ConfirmationModal';
+import { WhatsAppShareModal } from './components/WhatsAppShareModal';
 
 export default function App() {
   // Officers state (persisted to localStorage)
   const [officers, setOfficers] = useState<SecurityOfficer[]>(() => {
     try {
-      const DATA_VERSION = 'v2_updated_roster_8';
+      const DATA_VERSION = 'v3_dog_handler_column';
       const savedVersion = localStorage.getItem('security_officers_data_version');
       if (savedVersion === DATA_VERSION) {
         const saved = localStorage.getItem('security_officers_data');
@@ -52,6 +66,7 @@ export default function App() {
           if (Array.isArray(parsed) && parsed.length > 0) {
             return parsed.map((item: any, idx: number) => ({
               ...item,
+              dogHandler: item.dogHandler || 'No',
               srNo: idx + 1
             }));
           }
@@ -74,12 +89,14 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [carFilter, setCarFilter] = useState('ALL');
+  const [dogHandlerFilter, setDogHandlerFilter] = useState('ALL');
   const [cityFilter, setCityFilter] = useState('ALL');
 
   // Modal & Print states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingOfficer, setEditingOfficer] = useState<SecurityOfficer | null>(null);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   // Google Auth & Workspace state
@@ -88,11 +105,14 @@ export default function App() {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSavingToSheets, setIsSavingToSheets] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [googleSheetResult, setGoogleSheetResult] = useState<GoogleSpreadsheetResult | null>(null);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
   // Confirmation Modal state for Google Sheets creation (mandatory per workspace skill)
   const [showSheetsConfirmModal, setShowSheetsConfirmModal] = useState(false);
+  const [isFirestoreConnected, setIsFirestoreConnected] = useState(false);
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
 
   // Initialize Firebase Auth listener
   useEffect(() => {
@@ -106,6 +126,29 @@ export default function App() {
         setHasToken(false);
       }
     );
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
+
+  // Real-time Firestore sync & boot connection test
+  useEffect(() => {
+    testFirestoreConnection().then(connected => {
+      setIsFirestoreConnected(connected);
+    });
+
+    const unsubscribe = subscribeToOfficers(
+      (cloudOfficers) => {
+        if (cloudOfficers && cloudOfficers.length > 0) {
+          const sorted = [...cloudOfficers].sort((a, b) => a.srNo - b.srNo);
+          setOfficers(sorted);
+        }
+      },
+      (err) => {
+        console.warn('Firestore subscription fallback:', err);
+      }
+    );
+
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
@@ -126,6 +169,19 @@ export default function App() {
     setTimeout(() => {
       setToastMessage(null);
     }, 4500);
+  };
+
+  // Push local roster to Firestore
+  const handlePushToFirestore = async () => {
+    try {
+      setIsSyncingCloud(true);
+      await batchSeedOfficersToFirestore(officers);
+      showToast('All recruitment officer records synchronized with Firebase Firestore cloud database!');
+    } catch (e: any) {
+      showToast(e.message || 'Error syncing to Firestore cloud.', 'error');
+    } finally {
+      setIsSyncingCloud(false);
+    }
   };
 
   // Google Sign-In Handler
@@ -235,15 +291,34 @@ export default function App() {
     }
   };
 
+  // Download A4 Landscape PDF (.pdf) report
+  const handleExportToPdf = async () => {
+    try {
+      setIsExportingPdf(true);
+      await exportSecurityOfficersPdf(officers);
+      showToast('Official A4 Landscape PDF report generated and downloaded successfully!');
+    } catch (error: any) {
+      console.error('Error exporting PDF report:', error);
+      showToast(error.message || 'Failed to generate PDF.', 'error');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   // Add or Update officer
   const handleSaveOfficer = (
     officerData: Omit<SecurityOfficer, 'id' | 'srNo'>,
     editId?: string
   ) => {
     if (editId) {
-      setOfficers(prev =>
-        prev.map(o => (o.id === editId ? { ...o, ...officerData } : o))
-      );
+      setOfficers(prev => {
+        const next = prev.map(o => (o.id === editId ? { ...o, ...officerData } : o));
+        const updated = next.find(o => o.id === editId);
+        if (updated) {
+          saveOfficerToFirestore(updated).catch(e => console.warn('Firestore write deferred:', e));
+        }
+        return next;
+      });
       showToast('Security Officer record updated successfully.');
     } else {
       const newOfficer: SecurityOfficer = {
@@ -253,6 +328,7 @@ export default function App() {
         addedAt: new Date().toISOString()
       };
       setOfficers(prev => [...prev, newOfficer]);
+      saveOfficerToFirestore(newOfficer).catch(e => console.warn('Firestore write deferred:', e));
       showToast(`Officer "${officerData.name}" added at Sr. No. ${officers.length + 1}.`);
     }
     setEditingOfficer(null);
@@ -263,10 +339,13 @@ export default function App() {
     setOfficers(prev => {
       const updated = prev.filter(o => o.id !== id);
       // Auto-renumber Sr. No. sequentially
-      return updated.map((item, index) => ({
+      const renumbered = updated.map((item, index) => ({
         ...item,
         srNo: index + 1
       }));
+      deleteOfficerFromFirestore(id).catch(e => console.warn('Firestore delete deferred:', e));
+      batchSeedOfficersToFirestore(renumbered).catch(e => console.warn('Firestore renumber deferred:', e));
+      return renumbered;
     });
     setDeleteTargetId(null);
     showToast('Officer record removed. Sr. No. auto-updated.');
@@ -274,31 +353,59 @@ export default function App() {
 
   // Inline City change
   const handleInlineCityChange = (id: string, newCity: string) => {
-    setOfficers(prev =>
-      prev.map(o => (o.id === id ? { ...o, city: newCity } : o))
-    );
+    setOfficers(prev => {
+      const next = prev.map(o => (o.id === id ? { ...o, city: newCity } : o));
+      const target = next.find(o => o.id === id);
+      if (target) {
+        saveOfficerToFirestore(target).catch(e => console.warn('Firestore write deferred:', e));
+      }
+      return next;
+    });
     showToast(`City updated to "${newCity}".`);
   };
 
   // Inline Status change
   const handleInlineStatusChange = (id: string, newStatus: string) => {
-    setOfficers(prev =>
-      prev.map(o => (o.id === id ? { ...o, status: newStatus } : o))
-    );
+    setOfficers(prev => {
+      const next = prev.map(o => (o.id === id ? { ...o, status: newStatus } : o));
+      const target = next.find(o => o.id === id);
+      if (target) {
+        saveOfficerToFirestore(target).catch(e => console.warn('Firestore write deferred:', e));
+      }
+      return next;
+    });
     showToast(`Status updated to "${newStatus}".`);
   };
 
   // Inline Car change
   const handleInlineCarChange = (id: string, newCar: CarOption) => {
-    setOfficers(prev =>
-      prev.map(o => (o.id === id ? { ...o, car: newCar } : o))
-    );
+    setOfficers(prev => {
+      const next = prev.map(o => (o.id === id ? { ...o, car: newCar } : o));
+      const target = next.find(o => o.id === id);
+      if (target) {
+        saveOfficerToFirestore(target).catch(e => console.warn('Firestore write deferred:', e));
+      }
+      return next;
+    });
     showToast(`Vehicle status updated to "${newCar}".`);
+  };
+
+  // Inline Dog Handler change
+  const handleInlineDogHandlerChange = (id: string, newDogHandler: DogHandlerOption) => {
+    setOfficers(prev => {
+      const next = prev.map(o => (o.id === id ? { ...o, dogHandler: newDogHandler } : o));
+      const target = next.find(o => o.id === id);
+      if (target) {
+        saveOfficerToFirestore(target).catch(e => console.warn('Firestore write deferred:', e));
+      }
+      return next;
+    });
+    showToast(`Dog Handler status updated to "${newDogHandler}".`);
   };
 
   // Reset to default sample roster
   const handleResetData = () => {
-    if (window.confirm('Reset recruitment roster to default 10 sample officers?')) {
+    if (window.confirm('Reset recruitment roster to default sample officers?')) {
       setOfficers(INITIAL_OFFICERS);
       showToast('Recruitment roster restored to default sample data.');
     }
@@ -325,11 +432,13 @@ export default function App() {
 
       const matchCar = carFilter === 'ALL' || officer.car === carFilter;
 
+      const matchDogHandler = dogHandlerFilter === 'ALL' || officer.dogHandler === dogHandlerFilter;
+
       const matchCity = cityFilter === 'ALL' || officer.city === cityFilter;
 
-      return matchSearch && matchStatus && matchCar && matchCity;
+      return matchSearch && matchStatus && matchCar && matchDogHandler && matchCity;
     });
-  }, [officers, searchTerm, statusFilter, carFilter, cityFilter]);
+  }, [officers, searchTerm, statusFilter, carFilter, dogHandlerFilter, cityFilter]);
 
   // Overall recruitment metrics
   const totalOfficers = officers.length;
@@ -337,6 +446,7 @@ export default function App() {
   const fullTimer = officers.filter(o => o.status === 'Full timer').length;
   const eVisa = officers.filter(o => o.status === 'E-Visa').length;
   const officersWithCar = officers.filter(o => o.car === 'Yes').length;
+  const dogHandlers = officers.filter(o => o.dogHandler === 'Yes').length;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col text-slate-900 selection:bg-blue-600 selection:text-white">
@@ -466,6 +576,38 @@ export default function App() {
               </div>
             )}
 
+            {/* WhatsApp PDF */}
+            <button
+              onClick={() => setIsWhatsAppModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer"
+              title="Send A4 Landscape PDF and recruitment summary via WhatsApp"
+            >
+              <MessageSquare className="w-3.5 h-3.5 fill-current" />
+              <span>WhatsApp PDF</span>
+            </button>
+
+            {/* Export to PDF */}
+            <button
+              onClick={handleExportToPdf}
+              disabled={isExportingPdf}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-700 hover:bg-rose-600 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer"
+              title="Export and download recruitment roster as an A4 Landscape PDF file"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>{isExportingPdf ? 'Exporting...' : 'Export PDF'}</span>
+            </button>
+
+            {/* Export to XLSX */}
+            <button
+              onClick={handleExportToExcel}
+              disabled={isExportingExcel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer"
+              title="Download Microsoft Excel workbook (.xlsx) with both worksheets"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>{isExportingExcel ? 'Exporting...' : 'Export XLSX'}</span>
+            </button>
+
             {/* Print A4 Landscape */}
             <button
               onClick={() => setIsPrintOpen(true)}
@@ -473,7 +615,7 @@ export default function App() {
               title="Print preview formatted for A4 landscape paper"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print A4</span>
+              <span className="hidden sm:inline">Print A4</span>
             </button>
           </div>
         </div>
@@ -539,33 +681,48 @@ export default function App() {
               </div>
             </div>
 
-            {/* GOOGLE SHEETS & DRIVE INTEGRATION STATUS BANNER */}
+            {/* GOOGLE SHEETS & FIREBASE INTEGRATION STATUS BANNER */}
             <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${user ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
-                  <FileSpreadsheet className="w-5 h-5" />
+                  <Database className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                      Google Sheets & Drive Integration
+                      Firebase & Google Workspace
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                      <Cloud className="w-3 h-3 text-blue-600" />
+                      Firestore DB: Online
                     </span>
                     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                      user ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
+                      user ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
                     }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${user ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                      {user ? `Connected (${user.email})` : 'Not Connected'}
+                      <span className={`w-1.5 h-1.5 rounded-full ${user ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                      {user ? `Auth: Connected (${user.email})` : 'Auth: Ready for Sign In'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 mt-1">
                     {user 
-                      ? 'Recruitment roster is ready to sync directly to your Google Sheets spreadsheet.'
-                      : 'Sign in with your Google account to create and synchronize spreadsheets in your Google Drive.'}
+                      ? 'Firebase Firestore & Authentication active. Roster syncs to cloud and Google Sheets.'
+                      : 'Firebase Firestore cloud database is connected. Sign in with Google to sync across devices.'}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center flex-wrap gap-2 self-start sm:self-auto">
+                {/* Sync to Firestore Cloud button */}
+                <button
+                  onClick={handlePushToFirestore}
+                  disabled={isSyncingCloud}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold rounded-lg transition-colors border border-slate-700 shadow-xs cursor-pointer"
+                  title="Upload all current security officers to Firebase Cloud Firestore database"
+                >
+                  <Cloud className={`w-3.5 h-3.5 text-blue-400 ${isSyncingCloud ? 'animate-pulse' : ''}`} />
+                  <span>{isSyncingCloud ? 'Saving...' : 'Sync Cloud DB'}</span>
+                </button>
+
                 {!user ? (
                   <button
                     onClick={handleGoogleSignIn}
@@ -658,7 +815,7 @@ export default function App() {
               </div>
 
               {/* Officers With Car */}
-              <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-200 shadow-2xs col-span-2 sm:col-span-1">
+              <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-200 shadow-2xs">
                 <div className="flex items-center justify-between text-blue-800 text-xs font-semibold uppercase tracking-wider">
                   <span>Officers With Car</span>
                   <Car className="w-4 h-4 text-blue-600" />
@@ -666,6 +823,18 @@ export default function App() {
                 <div className="mt-2 text-2xl font-bold text-blue-800">{officersWithCar}</div>
                 <div className="text-[11px] text-blue-700/80 font-medium mt-0.5">
                   {totalOfficers ? `${Math.round((officersWithCar / totalOfficers) * 100)}%` : '0%'} mobile response
+                </div>
+              </div>
+
+              {/* Dog Handlers */}
+              <div className="bg-purple-50/70 p-4 rounded-xl border border-purple-200 shadow-2xs">
+                <div className="flex items-center justify-between text-purple-800 text-xs font-semibold uppercase tracking-wider">
+                  <span>Dog Handlers</span>
+                  <Award className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="mt-2 text-2xl font-bold text-purple-800">{dogHandlers}</div>
+                <div className="text-[11px] text-purple-700/80 font-medium mt-0.5">
+                  {totalOfficers ? `${Math.round((dogHandlers / totalOfficers) * 100)}%` : '0%'} K9 units
                 </div>
               </div>
             </div>
@@ -721,6 +890,21 @@ export default function App() {
                   </select>
                 </div>
 
+                {/* Dog Handler Filter */}
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-300 px-2.5 py-1.5 rounded-lg">
+                  <Award className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="font-semibold text-slate-700">Dog:</span>
+                  <select
+                    value={dogHandlerFilter}
+                    onChange={(e) => setDogHandlerFilter(e.target.value)}
+                    className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer"
+                  >
+                    <option value="ALL">All</option>
+                    <option value="Yes">Yes (K9)</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+
                 {/* City Filter */}
                 <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-300 px-2.5 py-1.5 rounded-lg">
                   <MapPin className="w-3.5 h-3.5 text-slate-400" />
@@ -751,10 +935,42 @@ export default function App() {
                   <span>Add Officer</span>
                 </button>
 
+                {/* Export to PDF Button */}
+                <button
+                  onClick={handleExportToPdf}
+                  disabled={isExportingPdf}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer"
+                  title="Download A4 Landscape PDF Document"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>PDF</span>
+                </button>
+
+                {/* Export to XLSX Button */}
+                <button
+                  onClick={handleExportToExcel}
+                  disabled={isExportingExcel}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer"
+                  title="Download Microsoft Excel Workbook (.xlsx)"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>XLSX</span>
+                </button>
+
+                {/* WhatsApp Button */}
+                <button
+                  onClick={() => setIsWhatsAppModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer"
+                  title="Send A4 PDF Report via WhatsApp"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                  <span>WhatsApp</span>
+                </button>
+
                 {/* Reset Data Button */}
                 <button
                   onClick={handleResetData}
-                  className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Reset sample roster"
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -787,6 +1003,9 @@ export default function App() {
                       <th className="py-3 px-3 text-center font-bold border-r border-slate-700 w-24">
                         Car
                       </th>
+                      <th className="py-3 px-3 text-center font-bold border-r border-slate-700 w-28">
+                        Dog Handler
+                      </th>
                       <th className="py-3 px-3 text-center font-bold w-24">Actions</th>
                     </tr>
                   </thead>
@@ -795,7 +1014,7 @@ export default function App() {
                   <tbody className="divide-y divide-slate-200">
                     {filteredOfficers.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-slate-500">
+                        <td colSpan={8} className="py-12 text-center text-slate-500">
                           <FileSpreadsheet className="w-8 h-8 mx-auto text-slate-400 mb-2 opacity-60" />
                           <p className="font-semibold text-slate-700">No security officers match the selected filters.</p>
                           <p className="text-xs text-slate-400 mt-1">Try resetting the search terms or filters above.</p>
@@ -899,6 +1118,22 @@ export default function App() {
                                 className={`py-1 px-2 text-xs font-bold rounded-md border text-center outline-none cursor-pointer transition-colors ${
                                   officer.car === 'Yes'
                                     ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                    : 'bg-slate-100 text-slate-500 border-slate-200'
+                                }`}
+                              >
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                              </select>
+                            </td>
+
+                            {/* 7. Dog Handler (Dropdown: Yes / No, Center Aligned) */}
+                            <td className="py-2.5 px-3 text-center border-r border-slate-200">
+                              <select
+                                value={officer.dogHandler || 'No'}
+                                onChange={(e) => handleInlineDogHandlerChange(officer.id, e.target.value as DogHandlerOption)}
+                                className={`py-1 px-2 text-xs font-bold rounded-md border text-center outline-none cursor-pointer transition-colors ${
+                                  officer.dogHandler === 'Yes'
+                                    ? 'bg-purple-100 text-purple-900 border-purple-300'
                                     : 'bg-slate-100 text-slate-500 border-slate-200'
                                 }`}
                               >
@@ -1066,6 +1301,13 @@ export default function App() {
       {isPrintOpen && (
         <PrintView officers={officers} onClose={() => setIsPrintOpen(false)} />
       )}
+
+      {/* WhatsApp PDF Share Modal */}
+      <WhatsAppShareModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+        officers={officers}
+      />
     </div>
   );
 }

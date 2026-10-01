@@ -1,0 +1,73 @@
+{
+  "entities": {
+    "Officer": {
+      "title": "Officer",
+      "description": "Security officer recruitment record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the security officer record",
+          "maxLength": 128
+        },
+        "srNo": {
+          "type": "number",
+          "description": "Sequential roster sequence number"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the security officer",
+          "maxLength": 100
+        },
+        "city": {
+          "type": "string",
+          "description": "City or operational duty location",
+          "maxLength": 50
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Contact phone number stored as text",
+          "maxLength": 30
+        },
+        "status": {
+          "type": "string",
+          "description": "Recruitment or work status (e.g. Full timer, Student, E-Visa)",
+          "maxLength": 50
+        },
+        "car": {
+          "type": "string",
+          "description": "Vehicle readiness indicator (Yes or No)",
+          "enum": ["Yes", "No"],
+          "maxLength": 10
+        },
+        "dogHandler": {
+          "type": "string",
+          "description": "Dog handler operational readiness (Yes or No)",
+          "enum": ["Yes", "No"],
+          "maxLength": 10
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional operational or background notes",
+          "maxLength": 500
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "UID or email of user who last modified the record",
+          "maxLength": 128
+        }
+      },
+      "required": ["srNo", "name", "city", "phoneNumber", "status", "car", "dogHandler"]
+    }
+  },
+  "firestore": {
+    "/officers/{officerId}": {
+      "schema": "Officer",
+      "description": "Recruitment database records for all security officers"
+    }
+  }
+}

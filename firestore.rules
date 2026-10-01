@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidOfficer(data) {
+      return data.keys().hasAll(['srNo', 'name', 'city', 'phoneNumber', 'status', 'car']) &&
+             data.keys().hasOnly(['id', 'srNo', 'name', 'city', 'phoneNumber', 'status', 'car', 'dogHandler', 'notes', 'stage', 'addedAt', 'updatedAt', 'updatedBy']) &&
+             data.srNo is number && data.srNo > 0 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.city is string && data.city.size() > 0 && data.city.size() <= 50 &&
+             data.phoneNumber is string && data.phoneNumber.size() > 0 && data.phoneNumber.size() <= 30 &&
+             data.status is string && data.status.size() > 0 && data.status.size() <= 50 &&
+             data.car is string && (data.car == 'Yes' || data.car == 'No') &&
+             (!('dogHandler' in data) || (data.dogHandler is string && (data.dogHandler == 'Yes' || data.dogHandler == 'No'))) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+             (!('stage' in data) || (data.stage is string && data.stage.size() <= 50));
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Security officers recruitment collection
+    match /officers/{officerId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && isValidId(officerId) && isValidOfficer(incoming());
+      allow update: if isSignedIn() && isValidId(officerId) && isValidOfficer(incoming());
+      allow delete: if isSignedIn() && isValidId(officerId);
+    }
+  }
+}

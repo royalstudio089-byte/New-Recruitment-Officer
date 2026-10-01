@@ -9,7 +9,8 @@ import {
   CheckCircle2, 
   PieChart, 
   ArrowUpRight,
-  ShieldCheck
+  ShieldCheck,
+  Award
 } from 'lucide-react';
 import { SecurityOfficer } from '../types';
 
@@ -28,6 +29,8 @@ export const RecruitmentSummaryView: React.FC<RecruitmentSummaryViewProps> = ({
   const eVisa = officers.filter(o => o.status === 'E-Visa').length;
   const officersWithCar = officers.filter(o => o.car === 'Yes').length;
   const officersWithoutCar = officers.filter(o => o.car === 'No').length;
+  const dogHandlers = officers.filter(o => o.dogHandler === 'Yes').length;
+  const nonDogHandlers = officers.filter(o => o.dogHandler !== 'Yes').length;
 
   const otherStatuses = officers.filter(
     o => !['Student', 'Full timer', 'E-Visa'].includes(o.status)
@@ -172,6 +175,25 @@ export const RecruitmentSummaryView: React.FC<RecruitmentSummaryViewProps> = ({
             =COUNTIF(F4:F, "Yes")
           </div>
         </div>
+
+        {/* Dog Handlers */}
+        <div className="bg-white p-5 rounded-xl border border-purple-200 shadow-xs hover:border-purple-300 transition-all bg-purple-50/20">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-purple-800 uppercase tracking-wider">
+              Dog Handlers
+            </span>
+            <div className="p-2 bg-purple-100 rounded-lg text-purple-700">
+              <Award className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-bold text-purple-700">{dogHandlers}</span>
+            <span className="text-xs font-medium text-purple-600">({calcPct(dogHandlers)})</span>
+          </div>
+          <div className="mt-2 text-[11px] text-slate-400 font-mono">
+            =COUNTIF(G4:G, "Yes")
+          </div>
+        </div>
       </div>
 
       {/* Main Executive Summary Table (Formatted as Excel Table) */}
@@ -300,6 +322,40 @@ export const RecruitmentSummaryView: React.FC<RecruitmentSummaryViewProps> = ({
                 <td className="py-3.5 px-6">
                   <span className="px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded-md">
                     Static / Fixed Site
+                  </span>
+                </td>
+              </tr>
+
+              <tr className="hover:bg-slate-50/80 transition-colors">
+                <td className="py-3.5 px-6 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-purple-600" />
+                  <span className="font-medium text-slate-900">Dog Handlers (K9 Units)</span>
+                </td>
+                <td className="py-3.5 px-6 font-mono text-xs text-slate-600">
+                  =COUNTIF('Officer Database'!G4:G{totalOfficers + 3}, "Yes")
+                </td>
+                <td className="py-3.5 px-6 text-center font-bold text-purple-700">{dogHandlers}</td>
+                <td className="py-3.5 px-6 text-center font-medium text-slate-700">{calcPct(dogHandlers)}</td>
+                <td className="py-3.5 px-6">
+                  <span className="px-2.5 py-1 text-xs font-semibold bg-purple-100 text-purple-800 rounded-md border border-purple-200">
+                    K9 Certified Deployment
+                  </span>
+                </td>
+              </tr>
+
+              <tr className="hover:bg-slate-50/80 transition-colors">
+                <td className="py-3.5 px-6 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-slate-500" />
+                  <span className="font-medium text-slate-900">Standard Patrol (Non-Dog Handlers)</span>
+                </td>
+                <td className="py-3.5 px-6 font-mono text-xs text-slate-600">
+                  =COUNTIF('Officer Database'!G4:G{totalOfficers + 3}, "No")
+                </td>
+                <td className="py-3.5 px-6 text-center font-bold text-slate-700">{nonDogHandlers}</td>
+                <td className="py-3.5 px-6 text-center font-medium text-slate-700">{calcPct(nonDogHandlers)}</td>
+                <td className="py-3.5 px-6">
+                  <span className="px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-700 rounded-md">
+                    Standard Security Patrol
                   </span>
                 </td>
               </tr>

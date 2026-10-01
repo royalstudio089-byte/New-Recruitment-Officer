@@ -1,5 +1,6 @@
 export type VisaStatus = 'Student' | 'Full timer' | 'E-Visa';
 export type CarOption = 'Yes' | 'No';
+export type DogHandlerOption = 'Yes' | 'No';
 
 export type RecruitmentStage = 
   | 'New Applicant'
@@ -19,6 +20,7 @@ export interface SecurityOfficer {
   phoneNumber: string;
   status: string; // 'Student' | 'Full timer' | 'E-Visa' or recruitment stages
   car: CarOption;
+  dogHandler: DogHandlerOption;
   stage?: RecruitmentStage;
   notes?: string;
   addedAt?: string;
@@ -31,5 +33,7 @@ export interface RecruitmentMetrics {
   eVisa: number;
   officersWithCar: number;
   withoutCar: number;
+  dogHandlers: number;
+  nonDogHandlers: number;
   statusCounts: Record<string, number>;
 }

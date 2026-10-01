@@ -28,7 +28,7 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
   });
 
   // Row 1: Merged Title Header
-  sheet.mergeCells('A1:F1');
+  sheet.mergeCells('A1:G1');
   const titleCell = sheet.getCell('A1');
   titleCell.value = 'NEW RECRUITMENT – SECURITY OFFICERS';
   titleCell.font = {
@@ -49,7 +49,7 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
   sheet.getRow(1).height = 36;
 
   // Row 2: Subtitle / Timestamp
-  sheet.mergeCells('A2:F2');
+  sheet.mergeCells('A2:G2');
   const subCell = sheet.getCell('A2');
   const dateStr = new Date().toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -75,7 +75,7 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
   sheet.getRow(2).height = 18;
 
   // Row 3: Table Column Headers
-  const headers = ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car'];
+  const headers = ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler'];
   const headerRow = sheet.getRow(3);
   headerRow.values = headers;
   headerRow.height = 28;
@@ -155,8 +155,14 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
     c6.alignment = { vertical: 'middle', horizontal: 'center' };
     c6.font = { name: 'Calibri', size: 10, bold: true };
 
+    // Dog Handler (Yes / No)
+    const c7 = row.getCell(7);
+    c7.value = officer.dogHandler || 'No';
+    c7.alignment = { vertical: 'middle', horizontal: 'center' };
+    c7.font = { name: 'Calibri', size: 10, bold: true };
+
     // Apply baseline background & border
-    for (let c = 1; c <= 6; c++) {
+    for (let c = 1; c <= 7; c++) {
       const cell = row.getCell(c);
       cell.border = {
         top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
@@ -204,6 +210,13 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
     } else {
       c6.font = { name: 'Calibri', size: 10, color: { argb: 'FF64748B' } };
     }
+
+    // Dog Handler styling
+    if (officer.dogHandler === 'Yes') {
+      c7.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF7C3AED' } }; // Violet
+    } else {
+      c7.font = { name: 'Calibri', size: 10, color: { argb: 'FF64748B' } };
+    }
   });
 
   const lastDataRow = Math.max(startRowIndex + officers.length - 1, startRowIndex);
@@ -215,17 +228,18 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
     { key: 'city', width: 22 },
     { key: 'phone', width: 20 },
     { key: 'status', width: 22 },
-    { key: 'car', width: 14 }
+    { key: 'car', width: 14 },
+    { key: 'dogHandler', width: 16 }
   ];
 
   // Enable AutoFilter on header row
   sheet.autoFilter = {
     from: { row: 3, column: 1 },
-    to: { row: lastDataRow, column: 6 }
+    to: { row: lastDataRow, column: 7 }
   };
 
-  // Data Validation for City, Status & Car columns
-  const cityValidationList = '"London,Brighton,Birmingham,Glasgow,Manchester,Sunderland,Cardiff,Swindon,Scotland,Watford,Ilford,Barrats,Peterborough,Bristol,Gateshead,Barnkingside London,Tooting, London"';
+  // Data Validation for City, Status, Car & Dog Handler columns
+  const cityValidationList = '"London,Brighton,Birmingham,Glasgow,Manchester,Sunderland,Cardiff,Swindon,Scotland,Watford,Ilford,Barrats,Peterborough,Bristol,Gateshead,Barnkingside London,Tooting, London,Southall"';
 
   for (let r = startRowIndex; r <= Math.max(lastDataRow, 50); r++) {
     sheet.getCell(`C${r}`).dataValidation = {
@@ -253,6 +267,15 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
       showErrorMessage: true,
       errorTitle: 'Invalid Selection',
       error: 'Please select Yes or No for vehicle status.'
+    };
+
+    sheet.getCell(`G${r}`).dataValidation = {
+      type: 'list',
+      allowBlank: false,
+      formulae: ['"Yes,No"'],
+      showErrorMessage: true,
+      errorTitle: 'Invalid Selection',
+      error: 'Please select Yes or No for dog handler status.'
     };
   }
 
@@ -326,6 +349,8 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
   const eVisaCount = officers.filter(o => o.status === 'E-Visa').length;
   const withCarCount = officers.filter(o => o.car === 'Yes').length;
   const withoutCarCount = officers.filter(o => o.car === 'No').length;
+  const dogHandlerCount = officers.filter(o => o.dogHandler === 'Yes').length;
+  const nonDogHandlerCount = officers.filter(o => o.dogHandler !== 'Yes').length;
 
   const summaryData = [
     { label: 'Total Officers', formula: `=COUNTA('Officer Database'!B4:B${lastDataRow})`, val: totalCount, pct: '100%' },
@@ -333,7 +358,9 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
     { label: 'Full Timer', formula: `=COUNTIF('Officer Database'!E4:E${lastDataRow}, "Full timer")`, val: fullTimerCount, pct: totalCount ? `${Math.round((fullTimerCount / totalCount) * 100)}%` : '0%' },
     { label: 'E-Visa', formula: `=COUNTIF('Officer Database'!E4:E${lastDataRow}, "E-Visa")`, val: eVisaCount, pct: totalCount ? `${Math.round((eVisaCount / totalCount) * 100)}%` : '0%' },
     { label: 'Officers With Car (Vehicle Available)', formula: `=COUNTIF('Officer Database'!F4:F${lastDataRow}, "Yes")`, val: withCarCount, pct: totalCount ? `${Math.round((withCarCount / totalCount) * 100)}%` : '0%' },
-    { label: 'Officers Without Car', formula: `=COUNTIF('Officer Database'!F4:F${lastDataRow}, "No")`, val: withoutCarCount, pct: totalCount ? `${Math.round((withoutCarCount / totalCount) * 100)}%` : '0%' }
+    { label: 'Officers Without Car', formula: `=COUNTIF('Officer Database'!F4:F${lastDataRow}, "No")`, val: withoutCarCount, pct: totalCount ? `${Math.round((withoutCarCount / totalCount) * 100)}%` : '0%' },
+    { label: 'Dog Handlers (K9 Units)', formula: `=COUNTIF('Officer Database'!G4:G${lastDataRow}, "Yes")`, val: dogHandlerCount, pct: totalCount ? `${Math.round((dogHandlerCount / totalCount) * 100)}%` : '0%' },
+    { label: 'Standard Patrol (Non-Dog Handlers)', formula: `=COUNTIF('Officer Database'!G4:G${lastDataRow}, "No")`, val: nonDogHandlerCount, pct: totalCount ? `${Math.round((nonDogHandlerCount / totalCount) * 100)}%` : '0%' }
   ];
 
   summaryData.forEach((item, idx) => {
