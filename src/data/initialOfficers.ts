@@ -18,7 +18,9 @@ export const CITY_OPTIONS = [
   'Gateshead',
   'Barnkingside London',
   'Tooting, London',
-  'Southall'
+  'Southall',
+  'Slough',
+  'Telford'
 ] as const;
 
 export type CityOption = typeof CITY_OPTIONS[number];
