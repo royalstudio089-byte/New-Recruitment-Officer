@@ -35,8 +35,9 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     status: 'Full timer',
     car: 'Yes',
     dogHandler: 'No',
+    easyToMove: 'Yes',
     stage: 'Active',
-    notes: 'Glasgow based, verified credentials with vehicle.'
+    notes: 'Glasgow based, verified credentials with vehicle. Flexible to relocate/move.'
   },
   {
     id: 'off-2',
@@ -47,8 +48,9 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     status: 'Full timer',
     car: 'Yes',
     dogHandler: 'Yes',
+    easyToMove: 'Yes',
     stage: 'Active',
-    notes: 'Birmingham deployment ready, own car, certified K9 dog handler.'
+    notes: 'Birmingham deployment ready, own car, certified K9 dog handler. Willing to travel.'
   },
   {
     id: 'off-3',
@@ -59,6 +61,7 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     status: 'Full timer',
     car: 'Yes',
     dogHandler: 'No',
+    easyToMove: 'No',
     stage: 'Active',
     notes: 'Gateshead / North East patrol unit, vehicle available.'
   },
@@ -71,6 +74,7 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     status: 'Full timer',
     car: 'No',
     dogHandler: 'No',
+    easyToMove: 'No',
     stage: 'Active',
     notes: 'Central London static site officer, transit accessible.'
   },
@@ -83,8 +87,9 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     status: 'Full timer',
     car: 'Yes',
     dogHandler: 'Yes',
+    easyToMove: 'Yes',
     stage: 'Active',
-    notes: 'London mobile response patrol guard with GP dog handling experience.'
+    notes: 'London mobile response patrol guard with GP dog handling experience. Mobile deployment.'
   },
   {
     id: 'off-6',
@@ -95,6 +100,7 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     status: 'Full timer',
     car: 'No',
     dogHandler: 'No',
+    easyToMove: 'No',
     stage: 'Active',
     notes: 'East London / Barkingside security coverage.'
   },
@@ -107,6 +113,7 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     status: 'Full timer',
     car: 'No',
     dogHandler: 'No',
+    easyToMove: 'No',
     stage: 'Active',
     notes: 'South London / Tooting access control specialist.'
   },
@@ -119,8 +126,9 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     status: 'Full timer',
     car: 'Yes',
     dogHandler: 'No',
+    easyToMove: 'Yes',
     stage: 'Active',
-    notes: 'Birmingham mobile supervision and patrol.'
+    notes: 'Birmingham mobile supervision and patrol. Readily available to move between sites.'
   }
 ];
 
@@ -140,3 +148,4 @@ export const STATUS_OPTIONS = [
 
 export const CAR_OPTIONS = ['Yes', 'No'] as const;
 export const DOG_HANDLER_OPTIONS = ['Yes', 'No'] as const;
+export const EASY_TO_MOVE_OPTIONS = ['Yes', 'No'] as const;

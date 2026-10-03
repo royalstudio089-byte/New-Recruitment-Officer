@@ -31,6 +31,7 @@ export const PrintView: React.FC<PrintViewProps> = ({ officers, onClose }) => {
   const eVisa = officers.filter(o => o.status === 'E-Visa').length;
   const officersWithCar = officers.filter(o => o.car === 'Yes').length;
   const dogHandlers = officers.filter(o => o.dogHandler === 'Yes').length;
+  const easyToMove = officers.filter(o => (o.easyToMove || 'Yes') === 'Yes').length;
 
   const showMsg = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
     setMessage({ text, type });
@@ -193,7 +194,7 @@ export const PrintView: React.FC<PrintViewProps> = ({ officers, onClose }) => {
         </div>
 
         {/* SUMMARY STATS BAR */}
-        <div className="grid grid-cols-6 gap-2 mb-4 text-xs font-semibold text-center border border-slate-300 p-2 bg-slate-50">
+        <div className="grid grid-cols-7 gap-2 mb-4 text-xs font-semibold text-center border border-slate-300 p-2 bg-slate-50">
           <div className="border-r border-slate-300">
             <span className="text-slate-500 block text-[10px]">TOTAL OFFICERS</span>
             <span className="text-sm font-bold text-slate-900">{totalOfficers}</span>
@@ -214,9 +215,13 @@ export const PrintView: React.FC<PrintViewProps> = ({ officers, onClose }) => {
             <span className="text-blue-800 block text-[10px]">OFFICERS WITH CAR</span>
             <span className="text-sm font-bold text-blue-700">{officersWithCar}</span>
           </div>
-          <div>
+          <div className="border-r border-slate-300">
             <span className="text-purple-800 block text-[10px]">DOG HANDLERS</span>
             <span className="text-sm font-bold text-purple-700">{dogHandlers}</span>
+          </div>
+          <div>
+            <span className="text-teal-800 block text-[10px]">EASY TO MOVE</span>
+            <span className="text-sm font-bold text-teal-700">{easyToMove}</span>
           </div>
         </div>
 
@@ -231,6 +236,7 @@ export const PrintView: React.FC<PrintViewProps> = ({ officers, onClose }) => {
               <th className="border border-slate-700 py-2 px-3 text-center w-28">Status</th>
               <th className="border border-slate-700 py-2 px-2 text-center w-16">Car</th>
               <th className="border border-slate-700 py-2 px-2 text-center w-24">Dog Handler</th>
+              <th className="border border-slate-700 py-2 px-2 text-center w-24">Easy to Move</th>
             </tr>
           </thead>
           <tbody>
@@ -272,6 +278,9 @@ export const PrintView: React.FC<PrintViewProps> = ({ officers, onClose }) => {
                   </td>
                   <td className={`border border-slate-300 py-1.5 px-2 text-center font-bold ${officer.dogHandler === 'Yes' ? 'text-purple-700 bg-purple-50' : 'text-slate-500'}`}>
                     {officer.dogHandler || 'No'}
+                  </td>
+                  <td className={`border border-slate-300 py-1.5 px-2 text-center font-bold ${(officer.easyToMove || 'Yes') === 'Yes' ? 'text-teal-700 bg-teal-50/50' : 'text-slate-500'}`}>
+                    {officer.easyToMove || 'Yes'}
                   </td>
                 </tr>
               );

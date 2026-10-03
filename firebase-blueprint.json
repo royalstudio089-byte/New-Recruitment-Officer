@@ -46,6 +46,12 @@
           "enum": ["Yes", "No"],
           "maxLength": 10
         },
+        "easyToMove": {
+          "type": "string",
+          "description": "Willingness / ability to travel or relocate between sites (Yes or No)",
+          "enum": ["Yes", "No"],
+          "maxLength": 10
+        },
         "notes": {
           "type": "string",
           "description": "Optional operational or background notes",

@@ -1,34 +1,34 @@
 import ExcelJS from 'exceljs';
 import { SecurityOfficer } from '../types';
 
+/**
+ * Generates an executive Microsoft Excel (.xlsx) workbook for the recruitment roster.
+ * Sheet 1: "Officer Database" (with all officers, conditional formatting, data validation dropdowns, auto-filter)
+ * Sheet 2: "Recruitment Summary" (with live automated Excel formulas: COUNTA, COUNTIF, and percentage calculations)
+ */
 export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]): Promise<Blob> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Security Recruitment Management System';
+  workbook.creator = 'Security Operations Central Command';
+  workbook.lastModifiedBy = 'Recruitment Operations';
   workbook.created = new Date();
   workbook.modified = new Date();
 
-  // Primary Sheet: Officer Database
+  // -------------------------------------------------------------
+  // Sheet 1: Officer Database Worksheet
+  // -------------------------------------------------------------
   const sheet = workbook.addWorksheet('Officer Database', {
-    views: [{ state: 'frozen', xSplit: 0, ySplit: 3 }],
     pageSetup: {
       paperSize: 9, // A4
       orientation: 'landscape',
       fitToPage: true,
       fitToWidth: 1,
-      fitToHeight: 0,
-      margins: {
-        left: 0.5,
-        right: 0.5,
-        top: 0.75,
-        bottom: 0.75,
-        header: 0.3,
-        footer: 0.3
-      }
-    }
+      fitToHeight: 0
+    },
+    views: [{ state: 'frozen', xSplit: 0, ySplit: 3 }] // Freeze first 3 rows
   });
 
-  // Row 1: Merged Title Header
-  sheet.mergeCells('A1:G1');
+  // Row 1: Merged Title Banner
+  sheet.mergeCells('A1:H1');
   const titleCell = sheet.getCell('A1');
   titleCell.value = 'NEW RECRUITMENT – SECURITY OFFICERS';
   titleCell.font = {
@@ -49,7 +49,7 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
   sheet.getRow(1).height = 36;
 
   // Row 2: Subtitle / Timestamp
-  sheet.mergeCells('A2:G2');
+  sheet.mergeCells('A2:H2');
   const subCell = sheet.getCell('A2');
   const dateStr = new Date().toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -74,8 +74,8 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
   };
   sheet.getRow(2).height = 18;
 
-  // Row 3: Table Column Headers
-  const headers = ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler'];
+  // Row 3: Table Column Headers (Includes 'Easy to Move')
+  const headers = ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler', 'Easy to Move'];
   const headerRow = sheet.getRow(3);
   headerRow.values = headers;
   headerRow.height = 28;
@@ -108,17 +108,17 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
   sheet.getCell('B3').alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
   sheet.getCell('C3').alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
 
-  // Populate Officer Data Rows
+  // Populate Data Rows
   const startRowIndex = 4;
   officers.forEach((officer, index) => {
-    const rowNumber = startRowIndex + index;
-    const row = sheet.getRow(rowNumber);
-    row.height = 24;
+    const rowNum = startRowIndex + index;
+    const row = sheet.getRow(rowNum);
+    row.height = 22;
 
     const isEven = index % 2 === 0;
-    const rowBg = isEven ? 'FFFFFFFF' : 'FFF8FAFC'; // Soft alternating striping
+    const rowBg = isEven ? 'FFFFFFFF' : 'FFF8FAFC';
 
-    // Sr. No.
+    // Sr. No. (Sequential Integer)
     const c1 = row.getCell(1);
     c1.value = index + 1;
     c1.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -161,8 +161,14 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
     c7.alignment = { vertical: 'middle', horizontal: 'center' };
     c7.font = { name: 'Calibri', size: 10, bold: true };
 
-    // Apply baseline background & border
-    for (let c = 1; c <= 7; c++) {
+    // Easy to Move (Yes / No)
+    const c8 = row.getCell(8);
+    c8.value = officer.easyToMove || 'Yes';
+    c8.alignment = { vertical: 'middle', horizontal: 'center' };
+    c8.font = { name: 'Calibri', size: 10, bold: true };
+
+    // Apply baseline background & border across all 8 columns
+    for (let c = 1; c <= 8; c++) {
       const cell = row.getCell(c);
       cell.border = {
         top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
@@ -199,14 +205,14 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
       c5.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FFE2E8F0' } // Neutral slate
+        fgColor: { argb: 'FFF1F5F9' } // Light slate neutral
       };
       c5.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF334155' } };
     }
 
     // Car styling
     if (officer.car === 'Yes') {
-      c6.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF0284C7' } }; // Soft blue
+      c6.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF0284C7' } }; // Sky-600
     } else {
       c6.font = { name: 'Calibri', size: 10, color: { argb: 'FF64748B' } };
     }
@@ -216,6 +222,18 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
       c7.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF7C3AED' } }; // Violet
     } else {
       c7.font = { name: 'Calibri', size: 10, color: { argb: 'FF64748B' } };
+    }
+
+    // Easy to Move styling
+    if ((officer.easyToMove || 'Yes') === 'Yes') {
+      c8.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF0F766E' } }; // Teal-700
+      c8.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFCCFBF1' } // Teal-100
+      };
+    } else {
+      c8.font = { name: 'Calibri', size: 10, color: { argb: 'FF64748B' } };
     }
   });
 
@@ -229,16 +247,17 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
     { key: 'phone', width: 20 },
     { key: 'status', width: 22 },
     { key: 'car', width: 14 },
-    { key: 'dogHandler', width: 16 }
+    { key: 'dogHandler', width: 16 },
+    { key: 'easyToMove', width: 16 }
   ];
 
-  // Enable AutoFilter on header row
+  // Enable AutoFilter on header row across all 8 columns
   sheet.autoFilter = {
     from: { row: 3, column: 1 },
-    to: { row: lastDataRow, column: 7 }
+    to: { row: lastDataRow, column: 8 }
   };
 
-  // Data Validation for City, Status, Car & Dog Handler columns
+  // Data Validation for City, Status, Car, Dog Handler & Easy to Move columns
   const cityValidationList = '"London,Brighton,Birmingham,Glasgow,Manchester,Sunderland,Cardiff,Swindon,Scotland,Watford,Ilford,Barrats,Peterborough,Bristol,Gateshead,Barnkingside London,Tooting, London,Southall,Slough,Telford"';
 
   for (let r = startRowIndex; r <= Math.max(lastDataRow, 50); r++) {
@@ -276,6 +295,15 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
       showErrorMessage: true,
       errorTitle: 'Invalid Selection',
       error: 'Please select Yes or No for dog handler status.'
+    };
+
+    sheet.getCell(`H${r}`).dataValidation = {
+      type: 'list',
+      allowBlank: false,
+      formulae: ['"Yes,No"'],
+      showErrorMessage: true,
+      errorTitle: 'Invalid Selection',
+      error: 'Please select Yes or No for Easy to Move status.'
     };
   }
 
@@ -351,6 +379,8 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
   const withoutCarCount = officers.filter(o => o.car === 'No').length;
   const dogHandlerCount = officers.filter(o => o.dogHandler === 'Yes').length;
   const nonDogHandlerCount = officers.filter(o => o.dogHandler !== 'Yes').length;
+  const easyToMoveCount = officers.filter(o => (o.easyToMove || 'Yes') === 'Yes').length;
+  const notEasyToMoveCount = officers.filter(o => o.easyToMove === 'No').length;
 
   const summaryData = [
     { label: 'Total Officers', formula: `=COUNTA('Officer Database'!B4:B${lastDataRow})`, val: totalCount, pct: '100%' },
@@ -360,7 +390,9 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
     { label: 'Officers With Car (Vehicle Available)', formula: `=COUNTIF('Officer Database'!F4:F${lastDataRow}, "Yes")`, val: withCarCount, pct: totalCount ? `${Math.round((withCarCount / totalCount) * 100)}%` : '0%' },
     { label: 'Officers Without Car', formula: `=COUNTIF('Officer Database'!F4:F${lastDataRow}, "No")`, val: withoutCarCount, pct: totalCount ? `${Math.round((withoutCarCount / totalCount) * 100)}%` : '0%' },
     { label: 'Dog Handlers (K9 Units)', formula: `=COUNTIF('Officer Database'!G4:G${lastDataRow}, "Yes")`, val: dogHandlerCount, pct: totalCount ? `${Math.round((dogHandlerCount / totalCount) * 100)}%` : '0%' },
-    { label: 'Standard Patrol (Non-Dog Handlers)', formula: `=COUNTIF('Officer Database'!G4:G${lastDataRow}, "No")`, val: nonDogHandlerCount, pct: totalCount ? `${Math.round((nonDogHandlerCount / totalCount) * 100)}%` : '0%' }
+    { label: 'Standard Patrol (Non-Dog Handlers)', formula: `=COUNTIF('Officer Database'!G4:G${lastDataRow}, "No")`, val: nonDogHandlerCount, pct: totalCount ? `${Math.round((nonDogHandlerCount / totalCount) * 100)}%` : '0%' },
+    { label: 'Easy to Move (High Mobility Units)', formula: `=COUNTIF('Officer Database'!H4:H${lastDataRow}, "Yes")`, val: easyToMoveCount, pct: totalCount ? `${Math.round((easyToMoveCount / totalCount) * 100)}%` : '0%' },
+    { label: 'Not Easy to Move (Fixed Site Deployments)', formula: `=COUNTIF('Officer Database'!H4:H${lastDataRow}, "No")`, val: notEasyToMoveCount, pct: totalCount ? `${Math.round((notEasyToMoveCount / totalCount) * 100)}%` : '0%' }
   ];
 
   summaryData.forEach((item, idx) => {
@@ -388,23 +420,25 @@ export async function exportSecurityOfficersWorkbook(officers: SecurityOfficer[]
     cPct.font = { name: 'Calibri', size: 10, color: { argb: 'FF334155' } };
     cPct.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    const rowBg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
     [2, 3, 4, 5].forEach((c) => {
       const cell = row.getCell(c);
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
       cell.border = {
         top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
       };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC' }
+      };
     });
   });
 
-  // Set widths for Summary Sheet
-  summarySheet.getColumn(1).width = 4;
-  summarySheet.getColumn(2).width = 36;
-  summarySheet.getColumn(3).width = 45;
+  // Summary sheet column widths
+  summarySheet.getColumn(2).width = 44;
+  summarySheet.getColumn(3).width = 46;
   summarySheet.getColumn(4).width = 16;
   summarySheet.getColumn(5).width = 16;
 

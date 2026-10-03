@@ -31,11 +31,12 @@ import {
   Database,
   Award,
   FileText,
-  MessageSquare
+  MessageSquare,
+  Move
 } from 'lucide-react';
 import { User } from 'firebase/auth';
-import { SecurityOfficer, CarOption, DogHandlerOption } from './types';
-import { INITIAL_OFFICERS, STATUS_OPTIONS, CAR_OPTIONS, CITY_OPTIONS, DOG_HANDLER_OPTIONS } from './data/initialOfficers';
+import { SecurityOfficer, CarOption, DogHandlerOption, EasyToMoveOption } from './types';
+import { INITIAL_OFFICERS, STATUS_OPTIONS, CAR_OPTIONS, CITY_OPTIONS, DOG_HANDLER_OPTIONS, EASY_TO_MOVE_OPTIONS } from './data/initialOfficers';
 import { exportSecurityOfficersWorkbook } from './services/excelExport';
 import { exportSecurityOfficersPdf } from './services/pdfExport';
 import { createGoogleSheetRoster, syncToGoogleSpreadsheet, GoogleSpreadsheetResult } from './services/googleSheets';
@@ -57,7 +58,7 @@ export default function App() {
   // Officers state (persisted to localStorage)
   const [officers, setOfficers] = useState<SecurityOfficer[]>(() => {
     try {
-      const DATA_VERSION = 'v3_dog_handler_column';
+      const DATA_VERSION = 'v4_easy_to_move_column';
       const savedVersion = localStorage.getItem('security_officers_data_version');
       if (savedVersion === DATA_VERSION) {
         const saved = localStorage.getItem('security_officers_data');
@@ -67,6 +68,7 @@ export default function App() {
             return parsed.map((item: any, idx: number) => ({
               ...item,
               dogHandler: item.dogHandler || 'No',
+              easyToMove: item.easyToMove || 'Yes',
               srNo: idx + 1
             }));
           }
@@ -90,6 +92,7 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [carFilter, setCarFilter] = useState('ALL');
   const [dogHandlerFilter, setDogHandlerFilter] = useState('ALL');
+  const [easyToMoveFilter, setEasyToMoveFilter] = useState('ALL');
   const [cityFilter, setCityFilter] = useState('ALL');
 
   // Modal & Print states
@@ -403,6 +406,19 @@ export default function App() {
     showToast(`Dog Handler status updated to "${newDogHandler}".`);
   };
 
+  // Inline Easy to Move change
+  const handleInlineEasyToMoveChange = (id: string, newEasyToMove: EasyToMoveOption) => {
+    setOfficers(prev => {
+      const next = prev.map(o => (o.id === id ? { ...o, easyToMove: newEasyToMove } : o));
+      const target = next.find(o => o.id === id);
+      if (target) {
+        saveOfficerToFirestore(target).catch(e => console.warn('Firestore write deferred:', e));
+      }
+      return next;
+    });
+    showToast(`Easy to move status updated to "${newEasyToMove}".`);
+  };
+
   // Reset to default sample roster
   const handleResetData = () => {
     if (window.confirm('Reset recruitment roster to default sample officers?')) {
@@ -434,11 +450,13 @@ export default function App() {
 
       const matchDogHandler = dogHandlerFilter === 'ALL' || officer.dogHandler === dogHandlerFilter;
 
+      const matchEasyToMove = easyToMoveFilter === 'ALL' || (officer.easyToMove || 'Yes') === easyToMoveFilter;
+
       const matchCity = cityFilter === 'ALL' || officer.city === cityFilter;
 
-      return matchSearch && matchStatus && matchCar && matchDogHandler && matchCity;
+      return matchSearch && matchStatus && matchCar && matchDogHandler && matchEasyToMove && matchCity;
     });
-  }, [officers, searchTerm, statusFilter, carFilter, dogHandlerFilter, cityFilter]);
+  }, [officers, searchTerm, statusFilter, carFilter, dogHandlerFilter, easyToMoveFilter, cityFilter]);
 
   // Overall recruitment metrics
   const totalOfficers = officers.length;
@@ -447,6 +465,7 @@ export default function App() {
   const eVisa = officers.filter(o => o.status === 'E-Visa').length;
   const officersWithCar = officers.filter(o => o.car === 'Yes').length;
   const dogHandlers = officers.filter(o => o.dogHandler === 'Yes').length;
+  const easyToMoveCount = officers.filter(o => (o.easyToMove || 'Yes') === 'Yes').length;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col text-slate-900 selection:bg-blue-600 selection:text-white">
@@ -769,7 +788,7 @@ export default function App() {
             </div>
 
             {/* 2. RECRUITMENT SUMMARY KPI BAR AT TOP */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
               {/* Total Officers */}
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
@@ -817,7 +836,7 @@ export default function App() {
               {/* Officers With Car */}
               <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-200 shadow-2xs">
                 <div className="flex items-center justify-between text-blue-800 text-xs font-semibold uppercase tracking-wider">
-                  <span>Officers With Car</span>
+                  <span>With Car</span>
                   <Car className="w-4 h-4 text-blue-600" />
                 </div>
                 <div className="mt-2 text-2xl font-bold text-blue-800">{officersWithCar}</div>
@@ -835,6 +854,18 @@ export default function App() {
                 <div className="mt-2 text-2xl font-bold text-purple-800">{dogHandlers}</div>
                 <div className="text-[11px] text-purple-700/80 font-medium mt-0.5">
                   {totalOfficers ? `${Math.round((dogHandlers / totalOfficers) * 100)}%` : '0%'} K9 units
+                </div>
+              </div>
+
+              {/* Easy to Move */}
+              <div className="bg-teal-50/70 p-4 rounded-xl border border-teal-200 shadow-2xs">
+                <div className="flex items-center justify-between text-teal-800 text-xs font-semibold uppercase tracking-wider">
+                  <span>Easy to Move</span>
+                  <Move className="w-4 h-4 text-teal-600" />
+                </div>
+                <div className="mt-2 text-2xl font-bold text-teal-800">{easyToMoveCount}</div>
+                <div className="text-[11px] text-teal-700/80 font-medium mt-0.5">
+                  {totalOfficers ? `${Math.round((easyToMoveCount / totalOfficers) * 100)}%` : '0%'} relocatable
                 </div>
               </div>
             </div>
@@ -901,6 +932,21 @@ export default function App() {
                   >
                     <option value="ALL">All</option>
                     <option value="Yes">Yes (K9)</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+
+                {/* Easy to Move Filter */}
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-300 px-2.5 py-1.5 rounded-lg">
+                  <Move className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="font-semibold text-slate-700">Move:</span>
+                  <select
+                    value={easyToMoveFilter}
+                    onChange={(e) => setEasyToMoveFilter(e.target.value)}
+                    className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer"
+                  >
+                    <option value="ALL">All</option>
+                    <option value="Yes">Yes (Can Move)</option>
                     <option value="No">No</option>
                   </select>
                 </div>
@@ -1006,6 +1052,9 @@ export default function App() {
                       <th className="py-3 px-3 text-center font-bold border-r border-slate-700 w-28">
                         Dog Handler
                       </th>
+                      <th className="py-3 px-3 text-center font-bold border-r border-slate-700 w-28">
+                        Easy to Move
+                      </th>
                       <th className="py-3 px-3 text-center font-bold w-24">Actions</th>
                     </tr>
                   </thead>
@@ -1014,7 +1063,7 @@ export default function App() {
                   <tbody className="divide-y divide-slate-200">
                     {filteredOfficers.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-slate-500">
+                        <td colSpan={9} className="py-12 text-center text-slate-500">
                           <FileSpreadsheet className="w-8 h-8 mx-auto text-slate-400 mb-2 opacity-60" />
                           <p className="font-semibold text-slate-700">No security officers match the selected filters.</p>
                           <p className="text-xs text-slate-400 mt-1">Try resetting the search terms or filters above.</p>
@@ -1134,6 +1183,22 @@ export default function App() {
                                 className={`py-1 px-2 text-xs font-bold rounded-md border text-center outline-none cursor-pointer transition-colors ${
                                   officer.dogHandler === 'Yes'
                                     ? 'bg-purple-100 text-purple-900 border-purple-300'
+                                    : 'bg-slate-100 text-slate-500 border-slate-200'
+                                }`}
+                              >
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                              </select>
+                            </td>
+
+                            {/* 8. Easy to Move (Dropdown: Yes / No, Center Aligned) */}
+                            <td className="py-2.5 px-3 text-center border-r border-slate-200">
+                              <select
+                                value={officer.easyToMove || 'Yes'}
+                                onChange={(e) => handleInlineEasyToMoveChange(officer.id, e.target.value as EasyToMoveOption)}
+                                className={`py-1 px-2 text-xs font-bold rounded-md border text-center outline-none cursor-pointer transition-colors ${
+                                  (officer.easyToMove || 'Yes') === 'Yes'
+                                    ? 'bg-teal-100 text-teal-900 border-teal-300'
                                     : 'bg-slate-100 text-slate-500 border-slate-200'
                                 }`}
                               >

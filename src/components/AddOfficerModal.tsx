@@ -9,10 +9,11 @@ import {
   Shield, 
   Award, 
   AlertCircle, 
-  CheckCircle2 
+  CheckCircle2,
+  Move
 } from 'lucide-react';
-import { SecurityOfficer, CarOption, DogHandlerOption } from '../types';
-import { STATUS_OPTIONS, CITY_OPTIONS, DOG_HANDLER_OPTIONS } from '../data/initialOfficers';
+import { SecurityOfficer, CarOption, DogHandlerOption, EasyToMoveOption } from '../types';
+import { STATUS_OPTIONS, CITY_OPTIONS, DOG_HANDLER_OPTIONS, EASY_TO_MOVE_OPTIONS } from '../data/initialOfficers';
 
 interface AddOfficerModalProps {
   isOpen: boolean;
@@ -76,6 +77,7 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
   const [status, setStatus] = useState<string>('Full timer');
   const [car, setCar] = useState<CarOption>('No');
   const [dogHandler, setDogHandler] = useState<DogHandlerOption>('No');
+  const [easyToMove, setEasyToMove] = useState<EasyToMoveOption>('Yes');
   const [notes, setNotes] = useState('');
   
   // Validation states
@@ -91,6 +93,7 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
       setStatus(editOfficer.status);
       setCar(editOfficer.car);
       setDogHandler(editOfficer.dogHandler || 'No');
+      setEasyToMove(editOfficer.easyToMove || 'Yes');
       setNotes(editOfficer.notes || '');
     } else {
       setName('');
@@ -99,6 +102,7 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
       setStatus('Full timer');
       setCar('No');
       setDogHandler('No');
+      setEasyToMove('Yes');
       setNotes('');
     }
     setError('');
@@ -170,6 +174,7 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
         status,
         car,
         dogHandler,
+        easyToMove,
         notes: notes.trim()
       },
       editOfficer?.id
@@ -298,8 +303,8 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
             </div>
           </div>
 
-          {/* Status, Car & Dog Handler Dropdowns */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Status, Car, Dog Handler & Easy to Move Dropdowns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                 <Shield className="w-3.5 h-3.5 text-slate-400" />
@@ -308,7 +313,7 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
+                className="w-full px-2.5 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
               >
                 <optgroup label="Work / Visa Status (Primary)">
                   <option value="Student">Student</option>
@@ -336,7 +341,7 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
               <select
                 value={car}
                 onChange={(e) => setCar(e.target.value as CarOption)}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
+                className="w-full px-2.5 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
               >
                 <option value="Yes">Yes (Has car)</option>
                 <option value="No">No</option>
@@ -351,9 +356,24 @@ export const AddOfficerModal: React.FC<AddOfficerModalProps> = ({
               <select
                 value={dogHandler}
                 onChange={(e) => setDogHandler(e.target.value as DogHandlerOption)}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
+                className="w-full px-2.5 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
               >
-                <option value="Yes">Yes (K9 Certified)</option>
+                <option value="Yes">Yes (K9)</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Move className="w-3.5 h-3.5 text-slate-400" />
+                Easy to Move *
+              </label>
+              <select
+                value={easyToMove}
+                onChange={(e) => setEasyToMove(e.target.value as EasyToMoveOption)}
+                className="w-full px-2.5 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white font-medium text-slate-800"
+              >
+                <option value="Yes">Yes (Can Move)</option>
                 <option value="No">No</option>
               </select>
             </div>

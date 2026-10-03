@@ -64,6 +64,7 @@ export function buildSecurityOfficersPdfDoc(officers: SecurityOfficer[]): {
   const eVisa = officers.filter(o => o.status === 'E-Visa').length;
   const withCar = officers.filter(o => o.car === 'Yes').length;
   const dogHandlers = officers.filter(o => o.dogHandler === 'Yes').length;
+  const easyToMove = officers.filter(o => (o.easyToMove || 'Yes') === 'Yes').length;
 
   const kpis = [
     { label: 'TOTAL OFFICERS', value: `${totalOfficers}`, color: [15, 23, 42] },
@@ -71,25 +72,26 @@ export function buildSecurityOfficersPdfDoc(officers: SecurityOfficer[]): {
     { label: 'FULL TIMER', value: `${fullTimer}`, color: [51, 65, 85] },
     { label: 'E-VISA', value: `${eVisa}`, color: [21, 128, 61] },
     { label: 'WITH CAR', value: `${withCar}`, color: [2, 132, 199] },
-    { label: 'DOG HANDLERS (K9)', value: `${dogHandlers}`, color: [124, 58, 237] }
+    { label: 'DOG HANDLERS', value: `${dogHandlers}`, color: [124, 58, 237] },
+    { label: 'EASY TO MOVE', value: `${easyToMove}`, color: [13, 148, 136] }
   ];
 
   const kpiY = 41;
   const kpiHeight = 13;
-  const kpiWidth = (pageWidth - margin * 2 - (kpis.length - 1) * 3) / kpis.length;
+  const kpiWidth = (pageWidth - margin * 2 - (kpis.length - 1) * 2.5) / kpis.length;
 
   kpis.forEach((kpi, idx) => {
-    const kpiX = margin + idx * (kpiWidth + 3);
+    const kpiX = margin + idx * (kpiWidth + 2.5);
     doc.setFillColor(248, 250, 252); // slate-50
     doc.setDrawColor(226, 232, 240); // slate-200
     doc.rect(kpiX, kpiY, kpiWidth, kpiHeight, 'FD');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.5);
+    doc.setFontSize(6);
     doc.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
     doc.text(kpi.label, kpiX + kpiWidth / 2, kpiY + 4.5, { align: 'center' });
 
-    doc.setFontSize(10);
+    doc.setFontSize(9.5);
     doc.text(kpi.value, kpiX + kpiWidth / 2, kpiY + 10.5, { align: 'center' });
   });
 
@@ -101,19 +103,20 @@ export function buildSecurityOfficersPdfDoc(officers: SecurityOfficer[]): {
     o.phoneNumber || '-',
     o.status,
     o.car,
-    o.dogHandler || 'No'
+    o.dogHandler || 'No',
+    o.easyToMove || 'Yes'
   ]);
 
   autoTable(doc, {
     startY: 57,
     margin: { left: margin, right: margin },
-    head: [['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler']],
+    head: [['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler', 'Easy to Move']],
     body: tableData,
     theme: 'grid',
     styles: {
       font: 'helvetica',
-      fontSize: 8.5,
-      cellPadding: { top: 2.2, bottom: 2.2, left: 3, right: 3 },
+      fontSize: 8,
+      cellPadding: { top: 2, bottom: 2, left: 2.5, right: 2.5 },
       textColor: [15, 23, 42],
       lineColor: [226, 232, 240],
       lineWidth: 0.2
@@ -122,24 +125,25 @@ export function buildSecurityOfficersPdfDoc(officers: SecurityOfficer[]): {
       fillColor: [15, 23, 42], // #0f172a slate-900
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 9,
+      fontSize: 8.5,
       halign: 'center',
       valign: 'middle'
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 16, fontStyle: 'bold' }, // Sr. No.
-      1: { halign: 'left', cellWidth: 68, fontStyle: 'bold' },    // Officer Name
-      2: { halign: 'left', cellWidth: 42 },                       // City
-      3: { halign: 'center', cellWidth: 42, font: 'courier' },     // Phone Number (preserve text format)
-      4: { halign: 'center', cellWidth: 40, fontStyle: 'bold' },  // Status
-      5: { halign: 'center', cellWidth: 26, fontStyle: 'bold' },  // Car
-      6: { halign: 'center', cellWidth: 35, fontStyle: 'bold' }   // Dog Handler
+      0: { halign: 'center', cellWidth: 14, fontStyle: 'bold' }, // Sr. No.
+      1: { halign: 'left', cellWidth: 60, fontStyle: 'bold' },    // Officer Name
+      2: { halign: 'left', cellWidth: 36 },                       // City
+      3: { halign: 'center', cellWidth: 38, font: 'courier' },     // Phone Number (preserve text format)
+      4: { halign: 'center', cellWidth: 36, fontStyle: 'bold' },  // Status
+      5: { halign: 'center', cellWidth: 24, fontStyle: 'bold' },  // Car
+      6: { halign: 'center', cellWidth: 30, fontStyle: 'bold' },  // Dog Handler
+      7: { halign: 'center', cellWidth: 31, fontStyle: 'bold' }   // Easy to Move
     },
     alternateRowStyles: {
       fillColor: [248, 250, 252] // slate-50
     },
     didParseCell: (data) => {
-      // Highlight Status column
+      // Highlight Status column (index 4)
       if (data.section === 'body' && data.column.index === 4) {
         const val = data.cell.raw as string;
         if (val === 'Student') {
@@ -153,7 +157,7 @@ export function buildSecurityOfficersPdfDoc(officers: SecurityOfficer[]): {
           data.cell.styles.textColor = [51, 65, 85];    // slate-700
         }
       }
-      // Highlight Car column
+      // Highlight Car column (index 5)
       if (data.section === 'body' && data.column.index === 5) {
         const val = data.cell.raw as string;
         if (val === 'Yes') {
@@ -162,12 +166,22 @@ export function buildSecurityOfficersPdfDoc(officers: SecurityOfficer[]): {
           data.cell.styles.textColor = [100, 116, 139]; // slate-500
         }
       }
-      // Highlight Dog Handler column
+      // Highlight Dog Handler column (index 6)
       if (data.section === 'body' && data.column.index === 6) {
         const val = data.cell.raw as string;
         if (val === 'Yes') {
           data.cell.styles.fillColor = [243, 232, 255]; // purple-100
           data.cell.styles.textColor = [126, 34, 206];  // purple-700
+        } else {
+          data.cell.styles.textColor = [100, 116, 139]; // slate-500
+        }
+      }
+      // Highlight Easy to Move column (index 7)
+      if (data.section === 'body' && data.column.index === 7) {
+        const val = data.cell.raw as string;
+        if (val === 'Yes') {
+          data.cell.styles.fillColor = [204, 251, 241]; // teal-100
+          data.cell.styles.textColor = [15, 118, 110];  // teal-700
         } else {
           data.cell.styles.textColor = [100, 116, 139]; // slate-500
         }
@@ -247,6 +261,7 @@ export function formatRosterWhatsAppMessage(officers: SecurityOfficer[]): string
   const eVisa = officers.filter(o => o.status === 'E-Visa').length;
   const withCar = officers.filter(o => o.car === 'Yes').length;
   const dogHandlers = officers.filter(o => o.dogHandler === 'Yes').length;
+  const easyToMove = officers.filter(o => (o.easyToMove || 'Yes') === 'Yes').length;
   const dateStr = new Date().toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
@@ -262,7 +277,8 @@ export function formatRosterWhatsAppMessage(officers: SecurityOfficer[]): string
     `• Student: ${students}\n` +
     `• E-Visa: ${eVisa}\n` +
     `🚗 Officers with Car: *${withCar}*\n` +
-    `🐕 K9 Dog Handlers: *${dogHandlers}*\n\n` +
+    `🐕 K9 Dog Handlers: *${dogHandlers}*\n` +
+    `🚀 Easy to Move (Mobile): *${easyToMove}*\n\n` +
     `📄 *Official A4 Landscape PDF Report Generated*\n` +
     `Attached: NEW_RECRUITMENT_SECURITY_OFFICERS.pdf`
   );

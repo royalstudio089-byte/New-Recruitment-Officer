@@ -67,9 +67,9 @@ export async function createGoogleSheetRoster(
 
   // 2. Prepare Values for Officer Database
   const officerValues: (string | number)[][] = [
-    ['NEW RECRUITMENT – SECURITY OFFICERS', '', '', '', '', '', ''],
-    [`Recruitment Roster | Generated: ${new Date().toLocaleDateString()}`, '', '', '', '', '', ''],
-    ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler']
+    ['NEW RECRUITMENT – SECURITY OFFICERS', '', '', '', '', '', '', ''],
+    [`Recruitment Roster | Generated: ${new Date().toLocaleDateString()}`, '', '', '', '', '', '', ''],
+    ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler', 'Easy to Move']
   ];
 
   officers.forEach((o, index) => {
@@ -80,13 +80,14 @@ export async function createGoogleSheetRoster(
       `'${o.phoneNumber}`, // Apostrophe prefix ensures Sheets stores as text preserving leading zeros
       o.status,
       o.car,
-      o.dogHandler || 'No'
+      o.dogHandler || 'No',
+      o.easyToMove || 'Yes'
     ]);
   });
 
   // 3. Write Officer Database Values
   await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'Officer Database'!A1:G${officerValues.length}?valueInputOption=USER_ENTERED`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'Officer Database'!A1:H${officerValues.length}?valueInputOption=USER_ENTERED`,
     {
       method: 'PUT',
       headers: {
@@ -428,9 +429,9 @@ export async function syncToGoogleSpreadsheet(
   officers: SecurityOfficer[]
 ): Promise<void> {
   const officerValues: (string | number)[][] = [
-    ['NEW RECRUITMENT – SECURITY OFFICERS', '', '', '', '', '', ''],
-    [`Recruitment Roster | Synced: ${new Date().toLocaleDateString()}`, '', '', '', '', '', ''],
-    ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler']
+    ['NEW RECRUITMENT – SECURITY OFFICERS', '', '', '', '', '', '', ''],
+    [`Recruitment Roster | Synced: ${new Date().toLocaleDateString()}`, '', '', '', '', '', '', ''],
+    ['Sr. No.', 'Officer Name', 'City', 'Phone Number', 'Status', 'Car', 'Dog Handler', 'Easy to Move']
   ];
 
   officers.forEach((o, index) => {
@@ -441,12 +442,13 @@ export async function syncToGoogleSpreadsheet(
       `'${o.phoneNumber}`,
       o.status,
       o.car,
-      o.dogHandler || 'No'
+      o.dogHandler || 'No',
+      o.easyToMove || 'Yes'
     ]);
   });
 
   const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'Officer Database'!A1:G${officerValues.length}?valueInputOption=USER_ENTERED`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'Officer Database'!A1:H${officerValues.length}?valueInputOption=USER_ENTERED`,
     {
       method: 'PUT',
       headers: {
